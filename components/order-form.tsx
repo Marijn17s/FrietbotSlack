@@ -54,7 +54,6 @@ export default function OrderForm() {
   const [timeUntilDeadline, setTimeUntilDeadline] = useState<string | null>(null)
   const [isDeadlineImminent, setIsDeadlineImminent] = useState(false)
   const [showDeadlineWarning, setShowDeadlineWarning] = useState(false)
-  const [lastStatusCheck, setLastStatusCheck] = useState(0)
 
   const statusCheckIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const nextOpeningTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -63,10 +62,8 @@ export default function OrderForm() {
   const messageTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const warningTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Categories that should be in the collapsible section - using both camelCase and snake_case to handle API variations
+  // Categories that should be in the collapsible section
   const collapsibleCategories = [
-    // CamelCase versions
-    // Snake_case versions
     "schotels_met_salades_en_frites",
     "schotels_met_salades_zonder_frites",
     "warme_dranken",
@@ -75,7 +72,7 @@ export default function OrderForm() {
     "dranken",
   ]
 
-  // Fetch order status from API without full page loading state
+  // Fetch order status from API
   const fetchOrderStatus = async (showLoading = false) => {
     // Prevent too frequent API calls (minimum 5 seconds between calls)
     const now = Date.now()
@@ -83,9 +80,6 @@ export default function OrderForm() {
     //   console.log("Skipping status check - too soon since last check")
     //   return null
     // }
-
-    // Update last check time immediately to prevent race conditions
-    setLastStatusCheck(now)
 
     if (showLoading) {
       setIsCheckingStatus(true)
@@ -123,7 +117,6 @@ export default function OrderForm() {
 
       setOrderStatus(data)
 
-      // Handle deadline timer
       if (data.deadline) {
         setupDeadlineTimer(data.deadline)
       }
@@ -293,18 +286,15 @@ export default function OrderForm() {
         throw new Error(`Failed to fetch menu: ${response.status}, ${response.statusText}`)
       }
 
-      // Parse the JSON response
       const data = await response.json()
       console.log("API response data:", data)
 
       const processedCategories: MenuCategory[] = Object.entries(data).map(([type, items]) => {
-        // Create a display name from the type, but keep the original type value
         let displayName = type
-          .replace(/([A-Z])/g, " $1") // Add space before capital letters
-          .replace(/_/g, " ") // Replace underscores with spaces
-          .replace(/^./, (str) => str.toUpperCase()) // Capitalize first letter
+          .replace(/([A-Z])/g, " $1")
+          .replace(/_/g, " ")
+          .replace(/^./, (str) => str.toUpperCase())
 
-        // Add category information to each item
         const itemsWithCategory = Array.isArray(items)
           ? items.map((item) => ({
               ...item,
@@ -329,21 +319,16 @@ export default function OrderForm() {
       setMenuCategories(processedCategories)
       setMenuLoadingFailed(false)
 
-      // Initialize selections state with empty arrays for each category
       const initialSelections: Record<string, MenuItem[]> = {}
       processedCategories.forEach((category: MenuCategory) => {
         initialSelections[category.type] = []
       })
       setSelections(initialSelections)
 
-      // Check for last order after menu is loaded
       checkForLastOrder()
     } catch (err) {
       console.error("Error fetching menu:", err)
-
       setMenuLoadingFailed(true)
-
-      // Show warning to user
       setMenuError("Kon het menu niet laden van de server. Een standaard menu wordt gebruikt.")
     } finally {
       setIsLoadingMenu(false)
@@ -367,16 +352,13 @@ export default function OrderForm() {
 
   // Initialize with both menu and order status
   useEffect(() => {
-    // Fetch initial data
     fetchMenu()
-    fetchOrderStatus(true) // Only show loading on initial fetch
+    fetchOrderStatus(true)
 
-    // Set up periodic status check (every 30 seconds)
     statusCheckIntervalRef.current = setInterval(() => {
-      fetchOrderStatus() // Don't show loading on periodic checks
-    }, 30000) // Check every 30 seconds instead of spamming
+      fetchOrderStatus()
+    }, 20000)
 
-    // Clean up on unmount
     return () => {
       if (statusCheckIntervalRef.current) {
         clearInterval(statusCheckIntervalRef.current)
@@ -410,13 +392,11 @@ export default function OrderForm() {
   useEffect(() => {
     if (!menuCategories.length) return
 
-    // Get all selected items across all categories
     const allSelectedItems: MenuItem[] = []
     Object.values(selections).forEach((items) => {
       allSelectedItems.push(...items)
     })
 
-    // Create a new quantities object with default values
     const newQuantities = { ...quantities }
 
     // Set default quantity of 1 for newly selected items
@@ -457,13 +437,11 @@ export default function OrderForm() {
     })
 
     if (categoryToUpdate && itemToRemove) {
-      // Remove the item from its category
       setSelections((prev) => ({
         ...prev,
         [categoryToUpdate]: prev[categoryToUpdate].filter((item) => item.id !== itemId),
       }))
 
-      // Also remove the quantity
       setQuantities((prev) => {
         const newQuantities = { ...prev }
         delete newQuantities[itemId]
