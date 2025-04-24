@@ -329,7 +329,7 @@ export default function OrderForm() {
     } catch (err) {
       console.error("Error fetching menu:", err)
       setMenuLoadingFailed(true)
-      setMenuError("Kon het menu niet laden van de server. Een standaard menu wordt gebruikt.")
+      setMenuError("Kon het menu niet laden van de server.")
     } finally {
       setIsLoadingMenu(false)
     }
